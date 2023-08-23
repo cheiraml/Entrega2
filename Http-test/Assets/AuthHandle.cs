@@ -232,7 +232,7 @@ public class AuthHandle : MonoBehaviour
             Debug.Log(data.usuario.username + ": " + data.usuario.data.score);
 
 
-            
+            changeTXT(data.usuario.username, data.usuario.data.score);
 
             StartCoroutine(GetAll());
 
