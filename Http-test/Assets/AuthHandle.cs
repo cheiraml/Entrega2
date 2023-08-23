@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine.Networking;
 using System.Linq;
 using System;
+using UnityEngine.SceneManagement;
 
 
 public class AuthHandle : MonoBehaviour
@@ -13,6 +14,8 @@ public class AuthHandle : MonoBehaviour
     public TMP_InputField PasswordInputField;
     public TMP_InputField ScoreInputField;
     public string URL;
+    public List<TextMeshProUGUI> puntajes_TXT;
+    public TextMeshProUGUI puntjaeUsario;
 
     private string token;
     private string username;
@@ -29,7 +32,15 @@ public class AuthHandle : MonoBehaviour
         else
         {
             username = PlayerPrefs.GetString("username");
-            StartCoroutine(GetPerfil(username));
+            Scene scene = SceneManager.GetActiveScene();
+
+            if (scene.buildIndex == 2) 
+            {
+                StartCoroutine(GetAll());
+                StartCoroutine(GetPerfil(username, false));
+                return;
+            }
+            StartCoroutine(GetPerfil(username,true));
         }
     }
 
@@ -59,7 +70,19 @@ public class AuthHandle : MonoBehaviour
         data.password = PasswordInputField.text;
         string json = JsonUtility.ToJson(data);
         StartCoroutine(SendLogin(json));
-        StartCoroutine(GetAll());
+        
+    }
+
+    public void LoginScene() 
+    {
+        PlayerPrefs.SetString("token", String.Empty);
+        PlayerPrefs.SetString("username", String.Empty);
+        SceneManager.LoadScene(1);
+    }
+
+    public void RegisterScene() 
+    {
+        SceneManager.LoadScene(0);
     }
 
     IEnumerator SendRegister(string json)
@@ -78,6 +101,7 @@ public class AuthHandle : MonoBehaviour
             {
                 Data data = JsonUtility.FromJson<Data>(request.downloadHandler.text);
                 Debug.Log("Se registró el usuario con id " + data.usuario._id);
+                SceneManager.LoadScene(1);
             }
             else
             {
@@ -113,6 +137,7 @@ public class AuthHandle : MonoBehaviour
                 username = data.usuario.username;
 
                 Debug.Log(data.token);
+                SceneManager.LoadScene(2);
                 request.downloadHandler.Dispose();
             }
             else
@@ -125,7 +150,7 @@ public class AuthHandle : MonoBehaviour
 
 
 
-    IEnumerator GetPerfil(string username)
+    IEnumerator GetPerfil(string username, bool B)
     {
         UnityWebRequest request = UnityWebRequest.Get(URL + "usuarios/" + username);
         request.SetRequestHeader("x-token", token);
@@ -143,6 +168,15 @@ public class AuthHandle : MonoBehaviour
             Data data = JsonUtility.FromJson<Data>(request.downloadHandler.text);
             Debug.Log("El Usuario " + data.usuario.username + " está activo");
             Debug.Log(data.usuario.data.score);
+            if (B) 
+            {
+                SceneManager.LoadScene(2);
+            }
+            else 
+            {
+                changeTXT(data.usuario.username, data.usuario.data.score);
+            }
+
         }
     }
 
@@ -164,15 +198,18 @@ public class AuthHandle : MonoBehaviour
 
             var sortedUsuarios = data.usuarios.OrderByDescending(u => u.data.score).ToArray();
 
-            foreach (UserData us in sortedUsuarios)
+            for (int i = 0; i< puntajes_TXT.Count; i++) 
             {
-                Debug.Log(us.username + ": " + us.data.score);
+                puntajes_TXT[i].text = sortedUsuarios[i].username + " Puntaje: " + sortedUsuarios[i].data.score;
             }
         }
     }
 
 
-
+    void changeTXT(string name, int score) 
+    {
+        puntjaeUsario.text = name + " Puntaje: " + score;
+    }
 
     IEnumerator PatchScore(string json)
     {
@@ -195,8 +232,9 @@ public class AuthHandle : MonoBehaviour
             Debug.Log(data.usuario.username + ": " + data.usuario.data.score);
 
 
+            
 
-
+            StartCoroutine(GetAll());
 
         }
     }
